@@ -11,30 +11,32 @@ import (
 )
 
 func main() {
-	cep, err := userinput.GetUserInput()
-	if err != nil {
-		fmt.Printf("Erro ao obter entrada do usuário: %v\n", err)
-		return
-	}
-	apicep := "https://cdn.apicep.com/file/apicep/" + cep + ".json"
-	viacep := "http://viacep.com.br/ws/" + cep + "/json/"
+	for {
+		cep, err := userinput.GetUserInput()
+		if err != nil {
+			fmt.Printf("Erro ao obter entrada do usuário: %v\n", err)
+			return
+		}
+		apicep := "https://cdn.apicep.com/file/apicep/" + cep + ".json"
+		viacep := "http://viacep.com.br/ws/" + cep + "/json/"
 
-	ch := make(chan addressapi.Result)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
+		ch := make(chan addressapi.Result)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
 
-	go func() {
-		ch <- addressapi.GetAddressFromAPI(ctx, apicep, "apicep")
-	}()
+		go func() {
+			ch <- addressapi.GetAddressFromAPI(ctx, apicep, "apicep")
+		}()
 
-	go func() {
-		ch <- addressapi.GetAddressFromAPI(ctx, viacep, "viacep")
-	}()
+		go func() {
+			ch <- addressapi.GetAddressFromAPI(ctx, viacep, "viacep")
+		}()
 
-	select {
-	case result := <-ch:
-		apiresult.PrintAddressDetails(result)
-	case <-ctx.Done():
-		fmt.Println("Timeout ao buscar dados do endereço.")
+		select {
+		case result := <-ch:
+			apiresult.PrintAddressDetails(result)
+		case <-ctx.Done():
+			fmt.Println("Timeout ao buscar dados do endereço.")
+		}
 	}
 }
