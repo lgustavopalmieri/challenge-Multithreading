@@ -20,21 +20,26 @@ func main() {
 		apicep := "https://cdn.apicep.com/file/apicep/" + cep + ".json"
 		viacep := "http://viacep.com.br/ws/" + cep + "/json/"
 
-		ch := make(chan addressapi.Result)
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		ch := make(chan interface{})
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 		defer cancel()
 
 		go func() {
-			ch <- addressapi.GetAddressFromAPI(ctx, apicep, "apicep")
+			ch <- addressapi.GetAddressFromApiCep(ctx, apicep, "apicep")
 		}()
 
 		go func() {
-			ch <- addressapi.GetAddressFromAPI(ctx, viacep, "viacep")
+			ch <- addressapi.GetAddressFromViaCep(ctx, viacep, "viacep")
 		}()
 
 		select {
 		case result := <-ch:
-			apiresult.PrintAddressDetails(result)
+			if result, ok := result.(addressapi.ResultApiCep); ok {
+				apiresult.PrintApiCepResult(result)
+			}
+			if result, ok := result.(addressapi.ResultViaCep); ok {
+				apiresult.PrintViaCepResult(result)
+			}
 		case <-ctx.Done():
 			fmt.Println("Timeout ao buscar dados do endereço.")
 		}

@@ -3,12 +3,11 @@ package addressapi
 import (
 	"context"
 	"encoding/json"
-	"io"
 	"net/http"
 	"time"
 )
 
-type Address struct {
+type AddressViaCep struct {
 	Cep        string `json:"cep"`
 	Logradouro string `json:"logradouro"`
 	Bairro     string `json:"bairro"`
@@ -16,33 +15,31 @@ type Address struct {
 	Uf         string `json:"uf"`
 }
 
-type Result struct {
+type ResultViaCep struct {
 	APIName string
-	Address Address
+	Address AddressViaCep
 	Error   error
 }
 
-func GetAddressFromAPI(ctx context.Context, apiURL string, apiName string) Result {
+func GetAddressFromViaCep(ctx context.Context, apiURL string, apiName string) ResultViaCep {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
 	if err != nil {
-		return Result{APIName: apiName, Address: Address{}, Error: err}
+		return ResultViaCep{APIName: apiName, Address: AddressViaCep{}, Error: err}
 	}
 
 	start := time.Now()
 	resp, err := http.DefaultClient.Do(req)
 	elapsed := time.Since(start)
 
-	if err == nil && elapsed < time.Second {
+	if err == nil && elapsed < time.Minute {
 		defer resp.Body.Close()
-		body, err := io.ReadAll(resp.Body)
+
+		var address AddressViaCep
+		err = json.NewDecoder(resp.Body).Decode(&address)
 		if err == nil {
-			var address Address
-			err = json.Unmarshal(body, &address)
-			if err == nil {
-				return Result{APIName: apiName, Address: address, Error: nil}
-			}
+			return ResultViaCep{APIName: apiName, Address: address, Error: nil}
 		}
 	}
 
-	return Result{APIName: apiName, Address: Address{}, Error: err}
+	return ResultViaCep{APIName: apiName, Address: AddressViaCep{}, Error: err}
 }
